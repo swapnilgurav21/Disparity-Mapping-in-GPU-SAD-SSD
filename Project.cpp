@@ -228,9 +228,9 @@ int main(int argc, char** argv) {
 
 
 		//Enqueue the images to the kernel.
-		cl::Event eventImage;
-		queue.enqueueWriteImage(imageL, true, origin, region, countX * (sizeof(float)), 0, h_inputL.data(), NULL, &eventImage);
-		queue.enqueueWriteImage(imageR, true, origin, region, countX * (sizeof(float)), 0, h_inputR.data(), NULL, &eventImage);
+		cl::Event copy1;
+		queue.enqueueWriteImage(imageL, true, origin, region, countX * (sizeof(float)), 0, h_inputL.data(), NULL, &copy1);
+		queue.enqueueWriteImage(imageR, true, origin, region, countX * (sizeof(float)), 0, h_inputR.data(), NULL, &copy1);
 
 		// Create kernel object.
 		std::string kernelName = "disparityMapping" + boost::lexical_cast<std::string> (impl);
@@ -247,17 +247,18 @@ int main(int argc, char** argv) {
 		std::cout << "----------Kernel successfully executed-------------------" << std::endl;
 
 		//Read the output from GPU back to the host buffer.
-		queue.enqueueReadBuffer(d_output, true, 0, count * sizeof(int), h_outputGpu.data(), NULL, NULL);
+		cl::Event copy2;
+		queue.enqueueReadBuffer(d_output, true, 0, count * sizeof(int), h_outputGpu.data(), NULL, &copy2);
 
 
-
-		//Print the Performance Parameters.
 		Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
-		std::cout << "--------Performance Parameters-------------------" << std::endl;
-		std::cout << "1. CPU execution time: " << cpuTime << std::endl;
-		std::cout << "2. GPU execution time: " << gpuTime << std::endl;
-		double speedUp = (cpuTime.getSeconds()) / (gpuTime.getSeconds());
-		std::cout << "3. SpeedUp(GPU/CPU)  : " << speedUp << std::endl;
+		Core::TimeSpan copyTime = OpenCL::getElapsedTime(copy1) + OpenCL::getElapsedTime(copy2);
+		Core::TimeSpan overallGpuTime = gpuTime + copyTime;
+		std::cout << "CPU Time: " << cpuTime.toString() << ", " << (count / cpuTime.getSeconds() / 1e6) << " MPixel/s" << std::endl;;
+		std::cout << "Memory copy Time: " << copyTime.toString() << std::endl;
+		std::cout << "GPU Time w/o memory copy: " << gpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / gpuTime.getSeconds()) << ", " << (count / gpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
+		std::cout << "GPU Time with memory copy: " << overallGpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / overallGpuTime.getSeconds()) << ", " << (count / overallGpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
+
 		//Generate the output image.
 		Core::writeImagePGM("output_disparity_gpu_" + boost::lexical_cast<std::string> (impl) + ".pgm", h_outputGpu, countX, countY);
 
