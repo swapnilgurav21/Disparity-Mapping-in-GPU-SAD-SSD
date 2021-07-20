@@ -30,51 +30,77 @@ float getValueGlobal(const std::vector<float>& a, std::size_t countX, std::size_
 		return a[getIndexGlobal(countX, i, j)];
 }
 
-void disparityMapCalc(const std::vector<float>& img1, const std::vector<float>& img2, std::vector<float>& disparity, size_t width, size_t height, size_t countX, size_t countY)
+void disparityMappingSAD(const std::vector<float>& img1, const std::vector<float>& img2, std::vector<float>& h_outputSAD, size_t countX, size_t countY)
 {
-	int window_size = 11;
-	float SSD_min = 99999;
-	float SSD = 0;
-	float disp = 0;
-	float pixel_x = 0.0;
-	float final_disparity = 0.0;
-	int disparity_range = 100;
-	int x = 0;
-	int y = 0;
-	int w = 0;
-	int h = 0;
+	int windowSize = 11;
+	int windowRange = windowSize / 2;
+	float SAD = 0.0;
+	float SADmin = 10000.0;
+	float disparity = 0.0;
+	int disparityMax = 100;
 
-	for (x = 0; x < height; x++)
+
+	for (int i = 0; i < (int)countX; i++)
 	{
-
-		for (y = 0; y < width; y++)
+		for (int j = 0; j < (int)countY; j++)
 		{
-			SSD_min = 99999.0;
-			for (disp = 0; disp <= disparity_range; disp++)
+			SADmin = 10000.0;
+			for (int d = 0; d <= disparityMax; d++)
 			{
-				SSD = 0;
-				for (w = 0; w < window_size; w++)
+				SAD = 0;
+				for (int width = 1- windowRange; width < windowRange; width++)
 				{
-					for (h = 0; h < window_size; h++)
+					for (int height = 1- windowRange; height < windowRange; height++)
 					{
-						pixel_x = abs(getValueGlobal(img1, countX, countY, w + x, h + y) - getValueGlobal(img2, countX, countY, w + x - disp, h + y));
-						pixel_x = pixel_x * pixel_x;
-						SSD = SSD + pixel_x;
+						SAD = SAD + abs(getValueGlobal(img1, countX, countY, width + i, height + j) - getValueGlobal(img2, countX, countY, width + i - d, height + j));
 					}
 				}
-
-				if (SSD_min > SSD)
+				if (SADmin > SAD)
 				{
-					SSD_min = SSD;
-					final_disparity = (float)disp;
-					final_disparity = (float)(final_disparity) / disparity_range;
-
+					SADmin = SAD;
+					disparity = (float)d;
+					disparity = (float)(disparity) / disparityMax;
 				}
 			}
+			h_outputSAD[getIndexGlobal(countX, i, j)] = disparity;
+		}
 
-			disparity[width * y + x] = final_disparity;
+	}
+}
+void disparityMappingSSD(const std::vector<float>& img1, const std::vector<float>& img2, std::vector<float>& h_outputSSD, size_t countX, size_t countY)
+{
+	int windowSize = 11;
+	int windowRange = windowSize / 2;
+	float SSD = 0.0;
+	float SSDmin = 10000.0;
+	float disparity = 0.0;
+	int disparityMax = 100;
+	float temp = 0;
 
-
+	for (int i = 0; i < (int)countX; i++)
+	{
+		for (int j = 0; j < (int)countY; j++)
+		{
+			SSDmin = 10000.0;
+			for (int d = 0; d <= disparityMax; d++)
+			{
+				SSD = 0;
+				for (int width = 1 - windowRange; width < windowRange; width++)
+				{
+					for (int height = 1 - windowRange; height < windowRange; height++)
+					{
+						temp = abs(getValueGlobal(img1, countX, countY, width + i, height + j) - getValueGlobal(img2, countX, countY, width + i - d, height + j));
+						SSD = SSD + (temp * temp);
+					}
+				}
+				if (SSDmin > SSD)
+				{
+					SSDmin = SSD;
+					disparity = (float)d;
+					disparity = (float)(disparity) / disparityMax;
+				}
+			}
+			h_outputSSD[getIndexGlobal(countX, i, j)] = disparity;
 		}
 
 	}
@@ -118,7 +144,8 @@ int main(int argc, char** argv) {
 	std::vector<float> h_inputL(count);
 	std::vector<float> h_inputR(count);
 	std::vector<float> h_outputGpu(count);
-	std::vector<float> h_outputCpu(count);
+	std::vector<float> h_outputCpuSAD(count);
+	std::vector<float> h_outputCpuSSD(count);
 
 	// Get a device of the context
 	int deviceNr = argc < 2 ? 1 : atoi(argv[1]);
@@ -157,7 +184,8 @@ int main(int argc, char** argv) {
 	memset(h_inputL.data(), 255, size);
 	memset(h_inputR.data(), 255, size);
 	memset(h_outputGpu.data(), 255, size);
-	memset(h_outputCpu.data(), 255, size);
+	memset(h_outputCpuSAD.data(), 255, size);
+	memset(h_outputCpuSSD.data(), 255, size);
 
 	//////////////////////////////////////////////////////////////////////////////////
 	//		Read input images and set the data in respective buffers.
@@ -181,10 +209,12 @@ int main(int argc, char** argv) {
 	//Implement the disparity map on the CPU.
 	std::cout << "-------CPU Execution----------" << std::endl;
 	Core::TimeSpan startTime = Core::getCurrentTime();
-	//disparityMapCalc(h_input1,h_input2,h_outputCpu,inputWidth0,inputHeight0,countX, countY);
+	disparityMappingSAD(h_inputL,h_inputR,h_outputCpuSAD,countX, countY);
+	disparityMappingSSD(h_inputL, h_inputR, h_outputCpuSSD, countX, countY);
 	Core::TimeSpan endTime = Core::getCurrentTime();
 	Core::TimeSpan cpuTime = endTime - startTime;
-	Core::writeImagePGM("Disparity_map_cpu_scene_result.pgm", h_outputCpu, countX, countY);
+	Core::writeImagePGM("output_disparity_cpuSAD.pgm", h_outputCpuSAD, countX, countY);
+	Core::writeImagePGM("output_disparity_cpuSSD.pgm", h_outputCpuSSD, countX, countY);
 	std::cout << "-------CPU Execution Done----------" << std::endl;
 
 	for (int impl = 1; impl <= 2; impl++)
