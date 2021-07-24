@@ -29,10 +29,10 @@ float getValueGlobal(const std::vector<float>& a, std::size_t countX, std::size_
 	else
 		return a[getIndexGlobal(countX, i, j)];
 }
-
+// SAD implementation on CPU
 void disparityMappingSAD(const std::vector<float>& img1, const std::vector<float>& img2, std::vector<float>& h_outputSAD, size_t countX, size_t countY)
 {
-	int windowSize = 11;
+	int windowSize = 13;
 	int windowRange = windowSize / 2;
 	float SAD = 0.0;
 	float SADmin = 10000.0;
@@ -67,9 +67,10 @@ void disparityMappingSAD(const std::vector<float>& img1, const std::vector<float
 
 	}
 }
+// SSD implementation on CPU
 void disparityMappingSSD(const std::vector<float>& img1, const std::vector<float>& img2, std::vector<float>& h_outputSSD, size_t countX, size_t countY)
 {
-	int windowSize = 11;
+	int windowSize = 13;
 	int windowRange = windowSize / 2;
 	float SSD = 0.0;
 	float SSDmin = 10000.0;
@@ -187,9 +188,8 @@ int main(int argc, char** argv) {
 	memset(h_outputCpuSAD.data(), 255, size);
 	memset(h_outputCpuSSD.data(), 255, size);
 
-	//////////////////////////////////////////////////////////////////////////////////
-	//		Read input images and set the data in respective buffers.
-	//////////////////////////////////////////////////////////////////////////////////
+
+	//	Read input images and set the data in respective buffers
 
 	std::vector<float> inputDataL;
 	std::vector<float>inputDataR;
@@ -206,51 +206,76 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	//Implement the disparity map on the CPU.
-	std::cout << "-------CPU Execution----------" << std::endl;
-	Core::TimeSpan startTime = Core::getCurrentTime();
-	disparityMappingSAD(h_inputL,h_inputR,h_outputCpuSAD,countX, countY);
-	disparityMappingSSD(h_inputL, h_inputR, h_outputCpuSSD, countX, countY);
-	Core::TimeSpan endTime = Core::getCurrentTime();
-	Core::TimeSpan cpuTime = endTime - startTime;
-	Core::writeImagePGM("output_disparity_cpuSAD.pgm", h_outputCpuSAD, countX, countY);
-	Core::writeImagePGM("output_disparity_cpuSSD.pgm", h_outputCpuSSD, countX, countY);
-	std::cout << "-------CPU Execution Done----------" << std::endl;
-
+	// Iterate over all implementations (impl 1 - SAD, impl 2 - SSD)
 	for (int impl = 1; impl <= 2; impl++)
 	{
 		std::cout << "Implementation #" << impl << ":" << std::endl;
 
+		Core::TimeSpan startTime = Core::getCurrentTime();
+		Core::TimeSpan cpuTime = startTime;
+		if (impl == 1)
+		{
+			std::cout << "SAD Implementation:" << std::endl;
+			std::cout << "------- CPU Execution -------" << std::endl;
+			Core::TimeSpan startTime = Core::getCurrentTime();
+
+			// Function call SAD -- CPU Implementation
+			disparityMappingSAD(h_inputL, h_inputR, h_outputCpuSAD, countX, countY);
+			Core::TimeSpan endTime = Core::getCurrentTime();
+			cpuTime = endTime - startTime;
+
+			//Store output Image -- CPU
+			Core::writeImagePGM("output_disparity_cpuSAD.pgm", h_outputCpuSAD, countX, countY);
+			std::cout << "------- CPU Execution Done -------" << std::endl;
+		}
+		if (impl == 2)
+		{
+			std::cout << "SSD Implementation:" << std::endl;
+			std::cout << "------- CPU Execution -------" << std::endl;
+			Core::TimeSpan startTime = Core::getCurrentTime();
+
+			// Function call SSD -- CPU Implementation
+			disparityMappingSSD(h_inputL, h_inputR, h_outputCpuSSD, countX, countY);
+			Core::TimeSpan endTime = Core::getCurrentTime();
+			cpuTime = endTime - startTime;
+
+			//Store output Image -- CPU
+			Core::writeImagePGM("output_disparity_cpuSSD.pgm", h_outputCpuSSD, countX, countY);
+			std::cout << "------- CPU Execution Done -------" << std::endl;
+		}
+
 		// Reinitialize output memory to 0xff
 		memset(h_outputGpu.data(), 255, size);
-		//TODO: GPU
+
+		// Copy input data to device
 		queue.enqueueWriteBuffer(d_output, true, 0, size, h_outputGpu.data());
 
 
-		//Enqueue the images to the kernel.
+		//Enqueue the images to the kernel
 		cl::Event copy1;
 		queue.enqueueWriteImage(imageL, true, origin, region, countX * (sizeof(float)), 0, h_inputL.data(), NULL, &copy1);
 		queue.enqueueWriteImage(imageR, true, origin, region, countX * (sizeof(float)), 0, h_inputR.data(), NULL, &copy1);
 
-		// Create kernel object.
+		// Create kernel object
 		std::string kernelName = "disparityMapping" + boost::lexical_cast<std::string> (impl);
 		cl::Kernel disparityMapping(program, kernelName.c_str());
 
-		// Set Kernel Arguments.
+		// Set Kernel Arguments
 		cl::Event execution;
 		disparityMapping.setArg<cl::Image2D>(0, imageL);
 		disparityMapping.setArg<cl::Image2D>(1, imageR);
 		disparityMapping.setArg<cl::Buffer>(2, d_output);
 
+		//Launch Kernel on the device
 		queue.enqueueNDRangeKernel(disparityMapping, 0, cl::NDRange(countX, countY), cl::NDRange(wgSizeX, wgSizeY), NULL, &execution);
 
-		std::cout << "----------Kernel successfully executed-------------------" << std::endl;
+		std::cout << "------- Kernel successfully executed -------" << std::endl;
 
-		//Read the output from GPU back to the host buffer.
+		// Copy output data from GPU back to host
 		cl::Event copy2;
 		queue.enqueueReadBuffer(d_output, true, 0, count * sizeof(int), h_outputGpu.data(), NULL, &copy2);
 
-
+		// Print performance data
 		Core::TimeSpan gpuTime = OpenCL::getElapsedTime(execution);
 		Core::TimeSpan copyTime = OpenCL::getElapsedTime(copy1) + OpenCL::getElapsedTime(copy2);
 		Core::TimeSpan overallGpuTime = gpuTime + copyTime;
@@ -259,7 +284,7 @@ int main(int argc, char** argv) {
 		std::cout << "GPU Time w/o memory copy: " << gpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / gpuTime.getSeconds()) << ", " << (count / gpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
 		std::cout << "GPU Time with memory copy: " << overallGpuTime.toString() << " (speedup = " << (cpuTime.getSeconds() / overallGpuTime.getSeconds()) << ", " << (count / overallGpuTime.getSeconds() / 1e6) << " MPixel/s)" << std::endl;
 
-		//Generate the output image.
+		//Store the output image -- GPU
 		Core::writeImagePGM("output_disparity_gpu_" + boost::lexical_cast<std::string> (impl) + ".pgm", h_outputGpu, countX, countY);
 
 		std::cout << "Success" << std::endl;
