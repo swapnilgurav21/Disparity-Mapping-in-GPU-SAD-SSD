@@ -58,8 +58,7 @@ void disparityMappingSAD(const std::vector<float>& img1, const std::vector<float
 				if (SADmin > SAD)
 				{
 					SADmin = SAD;
-					disparity = (float)d;
-					disparity = (float)(disparity) / disparityMax;
+					disparity = (float)(d) / disparityMax;
 				}
 			}
 			h_outputSAD[getIndexGlobal(countX, i, j)] = disparity;
@@ -97,8 +96,7 @@ void disparityMappingSSD(const std::vector<float>& img1, const std::vector<float
 				if (SSDmin > SSD)
 				{
 					SSDmin = SSD;
-					disparity = (float)d;
-					disparity = (float)(disparity) / disparityMax;
+					disparity = (float)(d) / disparityMax;
 				}
 			}
 			h_outputSSD[getIndexGlobal(countX, i, j)] = disparity;

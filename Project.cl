@@ -72,8 +72,7 @@ __kernel void disparityMapping1(__read_only image2d_t d_inputL, __read_only imag
 		if (SAD < SADmin)
 		{
 			SADmin = SAD;
-			disparity = (float)d;
-			disparity = (float)(disparity) / disparityMax;
+			disparity = (float)(d) / disparityMax;
 
 		}
 
@@ -114,8 +113,7 @@ __kernel void disparityMapping2(__read_only image2d_t d_inputL, __read_only imag
 		if (SSD < SSDmin)
 		{
 			SSDmin = SSD;
-			disparity = (float)d;
-			disparity = (float)(disparity) / disparityMax;
+			disparity = (float)(d) / disparityMax;
 
 		}
 
