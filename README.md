@@ -17,7 +17,9 @@ Instructions to run this code in Visual Studio Community 2019
 # Input Images
 
 ![Bowling_L](https://user-images.githubusercontent.com/65502010/126905013-951a25dd-c281-49a0-96d8-b56c6830669f.jpg)
+Bowling left image
 ![Bowling_R](https://user-images.githubusercontent.com/65502010/126905025-82559f67-ae0f-4480-9b64-3b4a8da4698e.jpg)
+Bowling right image
 	
 	Bowling Left Image							Bowling Right Image
 # Result
