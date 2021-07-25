@@ -6,7 +6,7 @@ Instructions to run this code in Visual Studio Community 2019
 	Select boost_1_76_0_b1-msvc-14.2-64.exe from the list and download it
 3.  Do not forget to memorize the paths of boost and CUDA folders created after installation. It will be
         required in overwriting the BOOST and CUDA lib paths in CMakeLists.txt
-5.  Download the project from our git repsository 'Disparity-Mapping-in-GPU-SAD-SSD'.
+5.  Download the project from our git repository 'Disparity-Mapping-in-GPU-SAD-SSD'.
 6.  Extract the out.zip file and add it to the "Opencl-ex1" folder.
 7.  Open Visual Studio-> Choose "Open a local folder" -> and select "Opencl-ex1" folder.
 8.  In CMakeLists.txt change the Boost include and lib path as per your file locations.
