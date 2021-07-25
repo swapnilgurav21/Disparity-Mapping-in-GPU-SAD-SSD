@@ -12,7 +12,7 @@ Instructions to run this code in Visual Studio Community 2019
 8.  In CMakeLists.txt change the Boost include and lib path as per your file locations.
 9.  In project.cpp file change the path to cl file and the path to the input images file to the correct
 	path according to your file location.
-10. The output should look like in teh result section below.
+10. The output should look like in the result section below.
 
 # Input Images
 
