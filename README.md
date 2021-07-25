@@ -19,17 +19,17 @@ Instructions to run this code in Visual Studio Community 2019
 ![Bowling_L](https://user-images.githubusercontent.com/65502010/126905013-951a25dd-c281-49a0-96d8-b56c6830669f.jpg)
 ![Bowling_R](https://user-images.githubusercontent.com/65502010/126905025-82559f67-ae0f-4480-9b64-3b4a8da4698e.jpg)
 	
-	Bowling Left Image							Bowling Right Image
+ 	Image 1 : Bowling Left Image, Image 2 : Bowling Right Image
 # Result
 
 ![output_disparity_cpuSAD](https://user-images.githubusercontent.com/65502010/126905037-66c35eb1-cbd8-4822-849b-2bf0e1a3857b.jpg)
 ![output_disparity_cpuSSD](https://user-images.githubusercontent.com/65502010/126905041-11d142cd-c758-4eb0-85a3-8b6d5dd1bc25.jpg)
 
-	Output CPU SAD								Output CPU SSD
+	Image 1 :Output CPU SAD	, Image 2 :Output CPU SSD
 ![output_disparity_gpu_1](https://user-images.githubusercontent.com/65502010/126905043-4efb934a-261c-48b4-9452-a043c2ae6580.jpg)
 ![output_disparity_gpu_2](https://user-images.githubusercontent.com/65502010/126905045-b00527ef-e7f4-43c1-8851-63dfb87a2c3c.jpg)
 
-	Output GPU SAD								Output GPU SSD
+	Image 1 :Output GPU SAD	, Image 2 :Output GPU SSD
 <img width="347" alt="Bowling window size 13" src="https://user-images.githubusercontent.com/65502010/126905049-4090de7d-8bde-4cb4-b27d-3b0fa0ea8751.PNG">
 
 	Output Print statement of perfromance analysis between CPU and GPU implementation
